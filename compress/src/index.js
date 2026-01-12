@@ -40,11 +40,22 @@ function conversionPromise(record, destBucket) {
     console.log('Attempting: ' + conversion);
 
     get(srcBucket, srcKey)
-      .then(original => compress(original))
-      .then(modified => put(destBucket, destKey, modified))
-      .then(() => {
-        console.log('Success: ' + conversion);
-        return resolve('Success: ' + conversion);
+      .then(original => {
+        return compress(original)
+          .then(modified => {
+            return { data: modified, status: 'compressed' };
+          })
+          .catch(error => {
+            console.error('Compression failed for ' + srcKey + ', falling back to copy: ' + error.message);
+            return { data: original, status: 'copied (fallback)' };
+          });
+      })
+      .then(result => {
+        return put(destBucket, destKey, result.data).then(() => result.status);
+      })
+      .then((status) => {
+        console.log('Success (' + status + '): ' + conversion);
+        return resolve('Success (' + status + '): ' + conversion);
       })
       .catch(error => {
         console.error(error);
