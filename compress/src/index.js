@@ -10,8 +10,13 @@ export async function handler(event) {
   console.log(`Transforming with quality (${quality})`);
 
   await handle(event, async (inBuffer) => {
-    const image = await Jimp.read(inBuffer);
-    image.quality(quality);
-    return image.getBufferAsync(Jimp.MIME_JPEG);
+    try {
+      const image = await Jimp.read(inBuffer);
+      image.quality(quality);
+      return await image.getBufferAsync(Jimp.MIME_JPEG);
+    } catch (error) {
+      console.error("Compression failed, copying original image instead:", error);
+      return inBuffer;
+    }
   });
 }
